@@ -526,7 +526,6 @@ test "Multiplication by identity" {
     testing.expect(a.eql(id.multiply(a).multiply(id).multiply(id)));
 }
 
-
 test "fromValues" {
     const MatRM = Matrix(u8, 3, 4);
 
