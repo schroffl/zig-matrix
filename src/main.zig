@@ -39,9 +39,9 @@ pub fn Matrix(
             };
         }
 
-        pub fn fromValues(data: [rows * columns]T) Self {
+        pub fn fromValues(data: [rows * columns]T, order: StorageOrder) Self {
             var out = Self.init();
-            out.assign(data);
+            out.assign(data, order);
             return out;
         }
 
@@ -227,18 +227,20 @@ pub fn Matrix(
             self.data[row * columns + column] = value;
         }
 
-        pub fn assign(self: *Self, data: [rows * columns]T) void {
-            var i: usize = 0;
+        pub fn assign(self: *Self, data: [rows * columns]T, order: StorageOrder) void {
+            switch (order) {
+                .RowMajor => std.mem.copy(T, &self.data, &data),
+                .ColumnMajor => {
+                    var i: usize = 0;
 
-            while (i < rows) {
-                var j: usize = 0;
+                    while (i < rows) : (i += 1) {
+                        var j: usize = 0;
 
-                while (j < columns) {
-                    self.set(i, j, data[i * columns + j]);
-                    j += 1;
-                }
-
-                i += 1;
+                        while (j < columns) : (j += 1) {
+                            self.set(i, j, data[j * rows + i]);
+                        }
+                    }
+                },
             }
         }
 
@@ -351,17 +353,17 @@ test "Equality" {
     const a = Mat2.fromValues([_]u8{
         5,  34,
         20, 4,
-    });
+    }, .RowMajor);
 
     const b = Mat2.fromValues([_]u8{
         5,  34,
         20, 4,
-    });
+    }, .RowMajor);
 
     const c = Mat2.fromValues([_]u8{
         4,  34,
         20, 5,
-    });
+    }, .RowMajor);
 
     testing.expect(a.eql(b));
     testing.expect(b.eql(a));
@@ -374,7 +376,7 @@ test "Equality" {
     const d = Mat2Float.fromValues([_]f32{
         5,  34.134234,
         20, 4,
-    });
+    }, .RowMajor);
 
     testing.expect(d.eql(d));
 }
@@ -385,12 +387,12 @@ test "Approximate Equality" {
     const a = Mat2.fromValues([_]f32{
         5,  34.134234,
         20, 4,
-    });
+    }, .RowMajor);
 
     const b = Mat2.fromValues([_]f32{
         5,  34.134231,
         20, 4,
-    });
+    }, .RowMajor);
 
     testing.expect(a.approxEql(b, 0.000004));
     testing.expect(!a.approxEql(b, 0.000003));
@@ -436,12 +438,12 @@ test "Multiplying by a scalar" {
     const Mat1x4 = Matrix(f32, 1, 4);
     const mat = Mat1x4.fromValues([_]f32{
         7.5, 21, 0, 5,
-    });
+    }, .RowMajor);
 
     var result = mat.multiplyScalar(2);
     const correct = Mat1x4.fromValues([_]f32{
         15, 42, 0, 10,
-    });
+    }, .RowMajor);
 
     testing.expect(result.eql(correct));
 }
@@ -452,18 +454,18 @@ test "Multiplication of two matrices" {
 
     const a = Mat1x3.fromValues([_]f32{
         3, 4, 2,
-    });
+    }, .RowMajor);
 
     const b = Mat3x4.fromValues([_]f32{
         13, 9, 7, 15,
         8,  7, 4, 6,
         6,  4, 0, 3,
-    });
+    }, .RowMajor);
 
     const multiplied = a.multiply(b);
     const correct = @TypeOf(multiplied).fromValues([_]f32{
         83, 63, 37, 75,
-    });
+    }, .RowMajor);
 
     testing.expectEqual(@as(usize, 4), @TypeOf(multiplied).columns);
     testing.expectEqual(@as(usize, 1), @TypeOf(multiplied).rows);
@@ -482,7 +484,7 @@ test "Identity Matrix" {
         0, 1, 0, 0,
         0, 0, 1, 0,
         0, 0, 0, 1,
-    });
+    }, .RowMajor);
 
     testing.expect(Mat4.identity.eql(id));
 }
@@ -496,7 +498,7 @@ test "Multiplication by identity" {
         5,  6,  7,  8,
         9,  10, 11, 12,
         13, 14, 15, 16,
-    });
+    }, .RowMajor);
 
     testing.expect(a.eql(a.multiply(id)));
     testing.expect(a.eql(id.multiply(a)));
@@ -517,7 +519,7 @@ test "fromValues" {
         5,  9,  4, 7,
         42, 70, 3, 0,
         6,  8,  2, 1,
-    });
+    }, .RowMajor);
 
     for (mat_rm.data) |v, i| {
         testing.expectEqual(row_major_layout[i], v);
@@ -535,7 +537,7 @@ test "Determinant of a Matrix" {
         350, 30, 20,
         37,  38, 28,
         86,  71, 37,
-    });
+    }, .RowMajor);
 
     const id_determinant = Mat3.identity.determinant();
 
@@ -554,13 +556,13 @@ test "Inverse of a Matrix" {
         45.4, 20,      -25,
         96,   -57.564, 23.5,
         -59,  -30,     5.3,
-    });
+    }, .RowMajor);
 
     const correct = Mat3.fromValues([_]f64{
         0.0029157187487680710108, 0.0046953542495142360015,  -0.0070656332347892020334,
         -0.013818485883702378095, -0.0089997692212971780058, -0.025276900073976560239,
         -0.045759843459199085518, 0.0013269479400801101745,  -0.033052710013558439084,
-    });
+    }, .RowMajor);
 
     const inverse = try mat.invert();
 
@@ -576,7 +578,7 @@ test "Inverse of a Matrix" {
         45.4, 0, -25,
         96,   0, 23.5,
         -59,  0, 5.3,
-    });
+    }, .RowMajor);
 
     testing.expectError(error.SingularMatrix, singular.invert());
 }
