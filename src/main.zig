@@ -617,3 +617,24 @@ test "getData" {
     testing.expect(std.mem.eql(u8, &row_major, &([_]u8{ 1, 2, 3, 4 })));
     testing.expect(std.mem.eql(u8, &column_major, &([_]u8{ 1, 3, 2, 4 })));
 }
+
+test "assign" {
+    const Mat3 = Matrix(u8, 3, 3);
+
+    var mat_rm = Mat3.init();
+    var mat_cm = Mat3.init();
+
+    mat_rm.assign([_]u8{
+        1, 2, 3,
+        4, 5, 6,
+        7, 8, 9,
+    }, .RowMajor);
+
+    mat_cm.assign([_]u8{
+        1, 4, 7,
+        2, 5, 8,
+        3, 6, 9,
+    }, .ColumnMajor);
+
+    testing.expect(mat_rm.eql(mat_cm));
+}
