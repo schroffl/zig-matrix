@@ -6,38 +6,28 @@ pub const StorageOrder = enum {
     ColumnMajor,
 };
 
-pub fn Matrix(
-    comptime T: type,
-    comptime m: usize,
-    comptime n: usize,
-) type {
-    return CustomMatrix(T, m, n, .RowMajor);
-}
-
 fn MultiplicationType(comptime A: type, comptime B: type) type {
     comptime std.debug.assert(A.Child == B.Child);
     comptime if (A.columns != B.rows) {
         @compileError("MxN matrices can only be multiplied with NxP matrices");
     };
 
-    return CustomMatrix(A.Child, A.rows, B.columns, A.Order);
+    return Matrix(A.Child, A.rows, B.columns);
 }
 
 fn TranspositionType(comptime T: type) type {
-    return CustomMatrix(T.Child, T.columns, T.rows, T.Order);
+    return Matrix(T.Child, T.columns, T.rows);
 }
 
-pub fn CustomMatrix(
+pub fn Matrix(
     comptime T: type,
     comptime m: usize,
     comptime n: usize,
-    comptime o: StorageOrder,
 ) type {
     return struct {
         const Self = @This();
 
         pub const Child = T;
-        pub const Order = o;
         pub const rows = m;
         pub const columns = n;
 
@@ -240,20 +230,14 @@ pub fn CustomMatrix(
             std.debug.assert(row < rows);
             std.debug.assert(column < columns);
 
-            return comptime switch (Order) {
-                .RowMajor => self.data[row * columns + column],
-                .ColumnMajor => self.data[column * rows + row],
-            };
+            return self.data[row * columns + column];
         }
 
         pub inline fn set(self: *Self, row: usize, column: usize, value: T) void {
             std.debug.assert(row < rows);
             std.debug.assert(column < columns);
 
-            comptime switch (Order) {
-                .RowMajor => self.data[row * columns + column] = value,
-                .ColumnMajor => self.data[column * rows + row] = value,
-            };
+            self.data[row * columns + column] = value;
         }
 
         pub fn assign(self: *Self, data: [rows * columns]T) void {
@@ -289,29 +273,9 @@ pub fn CustomMatrix(
             return out;
         }
 
-        pub fn reorder(self: Self, comptime newStorageOrder: StorageOrder) CustomMatrix(T, rows, columns, newStorageOrder) {
-            if (Order == newStorageOrder) {
-                return self;
-            }
 
-            const Out = CustomMatrix(T, rows, columns, newStorageOrder);
-            var out = Out.init();
 
-            var i: usize = 0;
 
-            while (i < rows) {
-                var j: usize = 0;
-
-                while (j < columns) {
-                    out.set(i, j, self.get(i, j));
-                    j += 1;
-                }
-
-                i += 1;
-            }
-
-            return out;
-        }
 
         pub fn eql(a: Self, b: var) bool {
             var i: usize = 0;
@@ -372,8 +336,6 @@ pub fn CustomMatrix(
             try out_stream.writeAll(">");
             try out_stream.writeAll("(");
             try std.fmt.format(out_stream, "{}", .{@typeName(T)});
-            try out_stream.writeAll(", ");
-            try std.fmt.format(out_stream, "{}", .{Order});
             try out_stream.writeAll(")\n");
 
             var i: usize = 0;
@@ -572,31 +534,9 @@ test "Multiplication by identity" {
     testing.expect(a.eql(id.multiply(a).multiply(id).multiply(id)));
 }
 
-test "reorder" {
-    const MatRM = CustomMatrix(u8, 2, 4, .RowMajor);
-
-    const mat_rm = MatRM.fromValues([_]u8{
-        1, 2, 3, 4,
-        5, 7, 6, 8,
-    });
-
-    const mat_cm = mat_rm.reorder(.ColumnMajor);
-    const MatCM = @TypeOf(mat_cm);
-
-    testing.expectEqual(StorageOrder.ColumnMajor, MatCM.Order);
-    testing.expectEqual(MatRM.columns, MatCM.columns);
-    testing.expectEqual(MatRM.rows, MatCM.rows);
-    testing.expect(mat_rm.eql(mat_cm));
-
-    const mat_rm_transposed = mat_rm.transpose();
-
-    for (mat_cm.data) |v, i| {
-        testing.expectEqual(mat_rm_transposed.data[i], v);
-    }
-}
 
 test "fromValues" {
-    const MatRM = CustomMatrix(u8, 3, 4, .RowMajor);
+    const MatRM = Matrix(u8, 3, 4);
 
     const row_major_layout = [_]u8{
         5,  9,  4, 7,
@@ -612,19 +552,6 @@ test "fromValues" {
 
     for (mat_rm.data) |v, i| {
         testing.expectEqual(row_major_layout[i], v);
-    }
-
-    const column_major_layout = [_]u8{
-        5, 42, 6,
-        9, 70, 8,
-        4, 3,  2,
-        7, 0,  1,
-    };
-
-    const mat_cm = mat_rm.reorder(.ColumnMajor);
-
-    for (mat_cm.data) |v, i| {
-        testing.expectEqual(column_major_layout[i], v);
     }
 }
 
