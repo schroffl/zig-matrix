@@ -244,6 +244,27 @@ pub fn Matrix(
             }
         }
 
+        pub fn getData(self: Self, order: StorageOrder) [rows * columns]T {
+            switch (order) {
+                .RowMajor => return self.data,
+                .ColumnMajor => {
+                    var data = [_]T{0} ** (rows * columns);
+
+                    var i: usize = 0;
+
+                    while (i < rows) : (i += 1) {
+                        var j: usize = 0;
+
+                        while (j < columns) : (j += 1) {
+                            data[j * rows + i] = self.get(i, j);
+                        }
+                    }
+
+                    return data;
+                },
+            }
+        }
+
         pub fn transpose(self: Self) TranspositionType(Self) {
             var out = TranspositionType(Self).init();
             var i: usize = 0;
@@ -581,4 +602,18 @@ test "Inverse of a Matrix" {
     }, .RowMajor);
 
     testing.expectError(error.SingularMatrix, singular.invert());
+}
+
+test "getData" {
+    const Mat2 = Matrix(u8, 2, 2);
+    const mat = Mat2.fromValues([_]u8{
+        1, 2,
+        3, 4,
+    }, .RowMajor);
+
+    const row_major = mat.getData(.RowMajor);
+    const column_major = mat.getData(.ColumnMajor);
+
+    testing.expect(std.mem.eql(u8, &row_major, &([_]u8{ 1, 2, 3, 4 })));
+    testing.expect(std.mem.eql(u8, &column_major, &([_]u8{ 1, 3, 2, 4 })));
 }
