@@ -51,9 +51,8 @@ pub fn Matrix(
                     var mat = comptime Self.init();
                     var i = 0;
 
-                    while (i < rows) {
+                    while (i < rows) : (i += 1) {
                         mat.set(i, i, 1);
-                        i += 1;
                     }
 
                     break :blk mat;
@@ -147,16 +146,13 @@ pub fn Matrix(
             var out = Self.init();
             var i: usize = 0;
 
-            while (i < rows) {
+            while (i < rows) : (i += 1) {
                 var j: usize = 0;
 
-                while (j < columns) {
+                while (j < columns) : (j += 1) {
                     const value = a.get(i, j) + b.get(i, j);
                     out.set(i, j, value);
-                    j += 1;
                 }
-
-                i += 1;
             }
 
             return out;
@@ -166,15 +162,12 @@ pub fn Matrix(
             var out = Self.init();
             var i: usize = 0;
 
-            while (i < rows) {
+            while (i < rows) : (i += 1) {
                 var j: usize = 0;
 
-                while (j < columns) {
+                while (j < columns) : (j += 1) {
                     out.set(i, j, a.get(i, j) - b.get(i, j));
-                    j += 1;
                 }
-
-                i += 1;
             }
 
             return out;
@@ -184,15 +177,12 @@ pub fn Matrix(
             var out = Self.init();
             var i: usize = 0;
 
-            while (i < rows) {
+            while (i < rows) : (i += 1) {
                 var j: usize = 0;
 
-                while (j < columns) {
+                while (j < columns) : (j += 1) {
                     out.set(i, j, a.get(i, j) * scalar);
-                    j += 1;
                 }
-
-                i += 1;
             }
 
             return out;
@@ -204,10 +194,10 @@ pub fn Matrix(
 
             var i: usize = 0;
 
-            while (i < Out.rows) {
+            while (i < Out.rows) : (i += 1) {
                 var j: usize = 0;
 
-                while (j < Out.columns) {
+                while (j < Out.columns) : (j += 1) {
                     var k: usize = 0;
                     var result: Out.Child = 0;
 
@@ -217,10 +207,7 @@ pub fn Matrix(
                     }
 
                     out.set(i, j, result);
-                    j += 1;
                 }
-
-                i += 1;
             }
 
             return out;
@@ -259,23 +246,16 @@ pub fn Matrix(
             var out = TranspositionType(Self).init();
             var i: usize = 0;
 
-            while (i < rows) {
+            while (i < rows) : (i += 1) {
                 var j: usize = 0;
 
-                while (j < columns) {
+                while (j < columns) : (j += 1) {
                     out.set(j, i, self.get(i, j));
-                    j += 1;
                 }
-
-                i += 1;
             }
 
             return out;
         }
-
-
-
-
 
         pub fn eql(a: Self, b: var) bool {
             var i: usize = 0;
@@ -283,18 +263,14 @@ pub fn Matrix(
             comptime std.debug.assert(@TypeOf(b).columns == Self.columns);
             comptime std.debug.assert(@TypeOf(b).rows == Self.rows);
 
-            while (i < m) {
+            while (i < m) : (i += 1) {
                 var j: usize = 0;
 
-                while (j < n) {
+                while (j < n) : (j += 1) {
                     if (a.get(i, j) != b.get(i, j)) {
                         return false;
                     }
-
-                    j += 1;
                 }
-
-                i += 1;
             }
 
             return true;
@@ -306,18 +282,14 @@ pub fn Matrix(
             comptime std.debug.assert(@TypeOf(b).columns == Self.columns);
             comptime std.debug.assert(@TypeOf(b).rows == Self.rows);
 
-            while (i < m) {
+            while (i < m) : (i += 1) {
                 var j: usize = 0;
 
-                while (j < n) {
+                while (j < n) : (j += 1) {
                     if (!std.math.approxEq(T, a.get(i, j), b.get(i, j), epsilon)) {
                         return false;
                     }
-
-                    j += 1;
                 }
-
-                i += 1;
             }
 
             return true;
@@ -340,7 +312,7 @@ pub fn Matrix(
 
             var i: usize = 0;
 
-            while (i < Self.rows) {
+            while (i < Self.rows) : (i += 1) {
                 var j: usize = 0;
 
                 // TODO Align the columns and print column indices
@@ -353,13 +325,12 @@ pub fn Matrix(
                     try std.fmt.format(out_stream, "{} \u{23A2} ", .{i});
                 }
 
-                while (j < Self.columns) {
+                while (j < Self.columns) : (j += 1) {
                     if (j > 0) {
                         try out_stream.writeAll(", ");
                     }
 
                     try std.fmt.formatType(self.get(i, j), fmt, options, out_stream, 1);
-                    j += 1;
                 }
 
                 if (i == 0) {
@@ -369,8 +340,6 @@ pub fn Matrix(
                 } else {
                     try out_stream.writeAll(" \u{23A5}\n");
                 }
-
-                i += 1;
             }
         }
     };
