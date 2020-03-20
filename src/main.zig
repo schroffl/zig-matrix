@@ -586,14 +586,15 @@ test "Inverse of a Matrix" {
     }, .RowMajor);
 
     const inverse = try mat.invert();
+    const epsilon = std.math.f64_epsilon * @as(f64, 2);
 
-    testing.expect(inverse.approxEql(correct, 0.00000000000001));
+    testing.expect(inverse.approxEql(correct, epsilon));
 
     const inv_mat = inverse.multiply(mat);
     const mat_inv = mat.multiply(inverse);
 
-    testing.expect(inv_mat.approxEql(Mat3.identity, 0.00000000000001));
-    testing.expect(mat_inv.approxEql(Mat3.identity, 0.00000000000001));
+    testing.expect(inv_mat.approxEql(Mat3.identity, epsilon));
+    testing.expect(mat_inv.approxEql(Mat3.identity, epsilon));
 
     const singular = Mat3.fromValues([_]f64{
         45.4, 0, -25,
